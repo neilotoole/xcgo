@@ -1,10 +1,12 @@
+# S3_BUCKET is xcgo's own S3 bucket that holds stuff that's hard to find, e.g. macOS SDK.
+ARG S3_BUCKET="https://xcgo.s3.amazonaws.com"
 ARG OSX_SDK=MacOSX10.15.sdk
 ARG OSX_CODENAME=catalina
 ARG OSX_VERSION_MIN=10.10
 ARG OSX_SDK_SUM=d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8
-ARG OSX_SDK_BASEURL="https://sqio-public.s3.amazonaws.com/tools/macos_sdk"
+#ARG OSX_SDK_BASEURL="$S3_BUCKET/macos/sdk"
 ARG OSX_CROSS_COMMIT=bee9df60f169abdbe88d8529dbcc1ec57acf656d
-ARG LIBTOOL_VERSION=2.4.6
+ARG LIBTOOL_VERSION=2.4.6_1
 
 FROM ubuntu:bionic AS snapcore
 # This section taken from snapcore/snapcraft:stable
@@ -108,11 +110,12 @@ ENV OSX_CROSS_PATH=/osxcross
 
 
 FROM ctools AS osx-sdk
+ARG S3_BUCKET
 ARG OSX_SDK
 ARG OSX_SDK_SUM
-ARG OSX_SDK_BASEURL
-RUN echo "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
-ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
+#ARG OSX_SDK_BASEURL
+ADD "${S3_BUCKET}/macos/sdk/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
+#ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
 RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha256sum -c -
 
 
@@ -128,11 +131,20 @@ RUN UNATTENDED=yes OSX_VERSION_MIN=${OSX_VERSION_MIN} ./build.sh
 
 
 FROM osx-cross AS libtool
+ARG S3_BUCKET
 ARG LIBTOOL_VERSION
 ARG OSX_CODENAME
 ARG OSX_SDK
+
+## See https://bintray.com/homebrew/bottles/libtool#files
+#RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
+##ARG LIBTOOL_URL=https://bintray.com/homebrew/bottles/download_file?file_path=libtool-2.4.6.yosemite.bottle.tar.gz
+##RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-2.4.6.yosemite.bottle.tar.gz" \
+#RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-2.4.6_1.catalina.bottle.tar.gz" \
+##RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
+
 RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
-RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
+RUN curl -fsSL "${S3_BUCKET}/macos/libtool/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
 	| gzip -dc | tar xf - \
 		-C "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/" \
 		--strip-components=2 \
