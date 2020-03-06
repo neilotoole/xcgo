@@ -79,7 +79,7 @@ RUN apt-get update -qq -y && apt-get install -y -q --no-install-recommends \
 
 
 ENV GOPATH="/go"
-RUN mkdir -p "${GOPATH}"
+RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports && apt update -y
@@ -104,8 +104,6 @@ RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
     parallel
 
 
-
-
 ENV OSX_CROSS_PATH=/osxcross
 
 
@@ -116,3 +114,30 @@ ARG OSX_SDK_BASEURL
 RUN echo "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
 ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
 RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha256sum -c -
+
+
+FROM ctools AS osx-cross
+ARG OSX_CROSS_COMMIT
+WORKDIR "${OSX_CROSS_PATH}"
+RUN git clone https://github.com/tpoechtrager/osxcross.git . \
+ && git checkout -q "${OSX_CROSS_COMMIT}" \
+ && rm -rf ./.git
+COPY --from=osx-sdk "${OSX_CROSS_PATH}/." "${OSX_CROSS_PATH}/"
+ARG OSX_VERSION_MIN
+RUN UNATTENDED=yes OSX_VERSION_MIN=${OSX_VERSION_MIN} ./build.sh
+
+
+FROM osx-cross AS libtool
+ARG LIBTOOL_VERSION
+ARG OSX_CODENAME
+ARG OSX_SDK
+RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
+RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
+	| gzip -dc | tar xf - \
+		-C "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/" \
+		--strip-components=2 \
+		"libtool/${LIBTOOL_VERSION}/include/" \
+		"libtool/${LIBTOOL_VERSION}/lib/"
+
+ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH
+WORKDIR "${GOPATH}/src"
