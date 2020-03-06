@@ -1,17 +1,30 @@
-# XCGO_S3 is xcgo's own S3 bucket that holds stuff that's hard to find, e.g. macOS SDK.
-ARG XCGO_S3="https://xcgo.s3.amazonaws.com"
+# This neilotoole/xcgo Dockerfile builds a maximalist golang CGo-enabled
+# cross-compiling image with a bunch of developer tools on it. It can
+# build CGo apps on macOS, Linux, and Windows. It also contains supporting
+# tools such as Docker and snapcraft.
+
+# Note that xcgo.s3.amazonaws.com is xcgo's own S3 bucket that holds stuff
+# that's hard to find, e.g. macOS SDK.
 ARG OSX_SDK=MacOSX10.15.sdk
 ARG OSX_CODENAME=catalina
 ARG OSX_VERSION_MIN=10.10
 ARG OSX_SDK_SUM=d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8
-ARG OSX_SDK_BASEURL="$XCGO_S3/macos/sdk"
+ARG OSX_SDK_BASEURL="https://xcgo.s3.amazonaws.com/macos/sdk"
 ARG OSX_CROSS_COMMIT=bee9df60f169abdbe88d8529dbcc1ec57acf656d
 ARG LIBTOOL_VERSION=2.4.6_1
-ARG LIBTOOL_BASEURL="$XCGO_S3/macos/libtool"
+ARG LIBTOOL_BASEURL="https://xcgo.s3.amazonaws.com/macos/libtool"
 
-# TODO: check out https://hub.docker.com/layers/goreleaser/goreleaser/latest-cgo/images/sha256-e2a874a79d42d7f76151898b9d1c5f983e7bda24591282e5323f64288bc7f705?context=explore
 
+
+####################  snapcore  ####################
 FROM ubuntu:bionic AS snapcore
+# We build from ubuntu:bionic because we need snapcraft. It's difficult
+# to build a, say, Debian-based image with snapcraft. Note also that
+# the snapcore/snapcraft images are based upon ubuntu:xenial, but we
+# want ubuntu:bionic (some things we want, e.g. go1.14, don't have good
+# packages for xenial). Also, we generically want to stay pretty current
+# with all the tech in this stack.
+
 # This section taken from snapcore/snapcraft:stable
 # Grab dependencies
 RUN apt-get update
@@ -70,9 +83,8 @@ ENV SNAP_ARCH="amd64"
 
 
 
-
+####################  golangcore  ####################
 FROM snapcore AS golangcore
-
 RUN apt-get update -qq -y && apt-get install -y -q --no-install-recommends \
     man \
     wget \
@@ -91,6 +103,8 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports && apt update -y
 RUN apt install -y golang-go
 
 
+
+####################  ctools  ####################
 FROM golangcore AS ctools
 # Dependencies for https://github.com/tpoechtrager/osxcross:
 RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
@@ -99,6 +113,7 @@ RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
     file \
     llvm \
     patch \
+    build-essential \
     libxml2-dev \
     libssl-dev \
     xz-utils \
@@ -108,21 +123,21 @@ RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
     gcc-mingw-w64 \
     parallel
 
-
 ENV OSX_CROSS_PATH=/osxcross
 
 
+
+####################  osx-sdk  ####################
 FROM ctools AS osx-sdk
-#ARG XCGO_S3
 ARG OSX_SDK
 ARG OSX_SDK_SUM
 ARG OSX_SDK_BASEURL
-#ADD "${XCGO_S3}/macos/sdk/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
 ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
-#ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
 RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha256sum -c -
 
 
+
+####################  osx-cross  ####################
 FROM ctools AS osx-cross
 ARG OSX_CROSS_COMMIT
 WORKDIR "${OSX_CROSS_PATH}"
@@ -134,22 +149,16 @@ ARG OSX_VERSION_MIN
 RUN UNATTENDED=yes OSX_VERSION_MIN=${OSX_VERSION_MIN} ./build.sh
 
 
+
+####################  libtool  ####################
 FROM osx-cross AS libtool
-#ARG XCGO_S3
 ARG LIBTOOL_VERSION
 ARG LIBTOOL_BASEURL
 ARG OSX_CODENAME
 ARG OSX_SDK
 
-## See https://bintray.com/homebrew/bottles/libtool#files
-#RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
-##ARG LIBTOOL_URL=https://bintray.com/homebrew/bottles/download_file?file_path=libtool-2.4.6.yosemite.bottle.tar.gz
-##RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-2.4.6.yosemite.bottle.tar.gz" \
-#RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-2.4.6_1.catalina.bottle.tar.gz" \
-##RUN curl -fsSL "https://homebrew.bintray.com/bottles/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
 
 RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
-#RUN curl -fsSL "${XCGO_S3}/macos/libtool/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
 RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
 	| gzip -dc | tar xf - \
 		-C "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/" \
@@ -158,10 +167,30 @@ RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bo
 		"libtool/${LIBTOOL_VERSION}/lib/"
 
 
-# This section descended from https://github.com/mailchain/goreleaser-xcgo
-# Much gratitude to the mailchain team for doing the hard work.
-FROM libtool AS goreleaser
 
+####################  docker  ####################
+FROM libtool AS docker
+RUN apt-get update && \
+    apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    gnupg-agent
+
+
+RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - && \
+   add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+
+RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
+
+
+
+####################  goreleaser  ####################
+FROM docker AS goreleaser
+# This section descended from https://github.com/mailchain/goreleaser-xcgo
+# Much gratitude to the mailchain team.
 
 ENV GORELEASER_VERSION=0.128.0
 ENV GORELEASER_SHA=2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4
@@ -173,38 +202,37 @@ RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
     tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
     rm $GORELEASER_DOWNLOAD_FILE;
 
-RUN apt-get update && \
-    apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    gnupg-agent
-
-#RUN wget https://download.docker.com/linux/debian/gpg | apt-key add - && \
-
-#RUN curl -fsSL "https://download.docker.com/linux/debian/gpg" | apt-key add - && \
-#   add-apt-repository \
-#   "deb [arch=amd64] https://download.docker.com/linux/debian \
-#   $(lsb_release -cs) \
-#   stable"
-
-RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - && \
-   add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
-
-RUN apt-get update && \
-	apt-get install -y docker-ce \
-	docker-ce-cli
 
 
-FROM goreleaser AS final
+####################  devtools  ####################
+FROM goreleaser AS devtools
 
-ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH
+
+
+# Install ohmyzsh
+RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# And some sweet fonts
+RUN apt-get install -y fonts-powerline
+
+# Add some non-core ohmyzsh plugins
+RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+# Enable some plugins by default
+RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
+
+# We're going to want mage - https://magefile.org
+RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go
+
 WORKDIR "${GOPATH}/src"
 
+
+####################  final  ####################
+FROM devtools AS final
+
+ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
+
+
 ENTRYPOINT ["/entrypoint.sh"]
-#CMD ["-h"]
 
 
 COPY scripts/entrypoint.sh /entrypoint.sh
