@@ -9,6 +9,8 @@ ARG OSX_CROSS_COMMIT=bee9df60f169abdbe88d8529dbcc1ec57acf656d
 ARG LIBTOOL_VERSION=2.4.6_1
 ARG LIBTOOL_BASEURL="$XCGO_S3/macos/libtool"
 
+# TODO: check out https://hub.docker.com/layers/goreleaser/goreleaser/latest-cgo/images/sha256-e2a874a79d42d7f76151898b9d1c5f983e7bda24591282e5323f64288bc7f705?context=explore
+
 FROM ubuntu:bionic AS snapcore
 # This section taken from snapcore/snapcraft:stable
 # Grab dependencies
@@ -160,16 +162,16 @@ RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bo
 # Much gratitude to the mailchain team for doing the hard work.
 FROM libtool AS goreleaser
 
-ENV GORELEASER_VERSION=0.127.0
-ENV GORELEASER_SHA=bf7e0f34d1d46041f302a0dd773a5c70ff7476c147d3a30659a5a11e823bccbd
 
+ENV GORELEASER_VERSION=0.128.0
+ENV GORELEASER_SHA=2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4
 ENV GORELEASER_DOWNLOAD_FILE=goreleaser_Linux_x86_64.tar.gz
 ENV GORELEASER_DOWNLOAD_URL=https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}
 
-RUN  wget ${GORELEASER_DOWNLOAD_URL}; \
-			echo "$GORELEASER_SHA $GORELEASER_DOWNLOAD_FILE" | sha256sum -c - || exit 1; \
-			tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
-			rm $GORELEASER_DOWNLOAD_FILE;
+RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
+    echo "$GORELEASER_SHA $GORELEASER_DOWNLOAD_FILE" | sha256sum -c - || exit 1; \
+    tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
+    rm $GORELEASER_DOWNLOAD_FILE;
 
 RUN apt-get update && \
     apt-get install -y \
@@ -194,6 +196,9 @@ RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - &&
 RUN apt-get update && \
 	apt-get install -y docker-ce \
 	docker-ce-cli
+
+
+FROM goreleaser AS final
 
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH
 WORKDIR "${GOPATH}/src"
