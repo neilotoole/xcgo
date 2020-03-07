@@ -205,6 +205,10 @@ RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
 # Let's add mage - https://magefile.org
 RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go && rm -rf /tmp/mage
 
+# https://github.com/golangci/golangci-lint
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8
+
+
 
 ####################  sugar  ####################
 # Adding some sugar-on-top, it's not like this image is going to be slim anyway.

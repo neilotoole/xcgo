@@ -5,13 +5,14 @@ macOS, Windows and Linux targets.
 
 `xcgo` has what gophers crave:
 - `go 1.14`
-- `macOS SDK 10.15` (Catalina)
+- `macOS SDK 10.15` Catalina
 - `docker` CLI
 - `sqlite3`
 - `snapcraft`
 - `goreleaser`
+- `golangci-lint`
 - `mage`
-- `zsh`
+- `zsh` and `oh-my-zsh`
 - and a bunch of other stuff.
 
 ## Usage
