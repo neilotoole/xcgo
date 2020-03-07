@@ -104,8 +104,8 @@ RUN apt install -y golang-go
 
 
 
-####################  ctools  ####################
-FROM golangcore AS ctools
+####################  devtools  ####################
+FROM golangcore AS devtools
 # Dependencies for https://github.com/tpoechtrager/osxcross:
 RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
     clang \
@@ -121,14 +121,15 @@ RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
     libc++-dev  \
     libltdl-dev \
     gcc-mingw-w64 \
-    parallel
+    parallel \
+    sqlite3 libsqlite3-dev
 
 ENV OSX_CROSS_PATH=/osxcross
 
 
 
 ####################  osx-sdk  ####################
-FROM ctools AS osx-sdk
+FROM devtools AS osx-sdk
 ARG OSX_SDK
 ARG OSX_SDK_SUM
 ARG OSX_SDK_BASEURL
@@ -138,7 +139,7 @@ RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha2
 
 
 ####################  osx-cross  ####################
-FROM ctools AS osx-cross
+FROM devtools AS osx-cross
 ARG OSX_CROSS_COMMIT
 WORKDIR "${OSX_CROSS_PATH}"
 RUN git clone https://github.com/tpoechtrager/osxcross.git . \
@@ -187,11 +188,10 @@ RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
 
 
 
-####################  goreleaser  ####################
-FROM docker AS goreleaser
+####################  gotools  ####################
+FROM docker AS gotools
 # This section descended from https://github.com/mailchain/goreleaser-xcgo
 # Much gratitude to the mailchain team.
-
 ENV GORELEASER_VERSION=0.128.0
 ENV GORELEASER_SHA=2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4
 ENV GORELEASER_DOWNLOAD_FILE=goreleaser_Linux_x86_64.tar.gz
@@ -202,12 +202,13 @@ RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
     tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
     rm $GORELEASER_DOWNLOAD_FILE;
 
+# Let's add mage - https://magefile.org
+RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go && rm -rf /tmp/mage
 
 
-####################  devtools  ####################
-FROM goreleaser AS devtools
-
-
+####################  sugar  ####################
+# Adding some sugar-on-top, it's not like this image is going to be slim anyway.
+FROM gotools AS sugar
 
 # Install ohmyzsh
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
@@ -220,21 +221,14 @@ RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.
 # Enable some plugins by default
 RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
 
-# We're going to want mage - https://magefile.org
-RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go
 
 WORKDIR "${GOPATH}/src"
 
 
 ####################  final  ####################
-FROM devtools AS final
-
+FROM sugar AS final
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
-
-
 ENTRYPOINT ["/entrypoint.sh"]
-
-
 COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
