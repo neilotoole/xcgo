@@ -3,6 +3,8 @@
 # build CGo apps on macOS, Linux, and Windows. It also contains supporting
 # tools such as Docker and snapcraft.
 
+
+
 # Note that xcgo.s3.amazonaws.com is xcgo's own S3 bucket that holds stuff
 # that's hard to find, e.g. macOS SDK.
 ARG OSX_SDK=MacOSX10.15.sdk
@@ -25,11 +27,11 @@ FROM ubuntu:bionic AS snapcore
 # packages for xenial). Also, we generically want to stay pretty current
 # with all the tech in this stack.
 
+LABEL maintainer="neilotoole@apache.org"
+
 # This section taken from snapcore/snapcraft:stable
 # Grab dependencies
-RUN apt-get update
-RUN apt-get dist-upgrade --yes
-RUN apt-get install --yes \
+RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
       curl \
       jq \
       squashfs-tools \
@@ -61,8 +63,8 @@ RUN snap_version="$(awk '/^version:/{print $2}' /snap/snapcraft/current/meta/sna
 RUN echo 'exec "$SNAP/usr/bin/python3" "$SNAP/bin/snapcraft" "$@"' >> /snap/bin/snapcraft
 RUN chmod +x /snap/bin/snapcraft
 
-# Multi-stage build, only need the snaps from the builder. Copy them one at a
-# time so they can be cached.
+## Multi-stage build, only need the snaps from the builder. Copy them one at a
+## time so they can be cached.
 #FROM ubuntu:xenial
 #COPY --from=builder /snap/core /snap/core
 #COPY --from=builder /snap/core18 /snap/core18
@@ -70,7 +72,7 @@ RUN chmod +x /snap/bin/snapcraft
 #COPY --from=builder /snap/bin/snapcraft /snap/bin/snapcraft
 
 # Generate locale.
-RUN apt-get update && apt-get dist-upgrade --yes && apt-get install --yes sudo locales && locale-gen en_US.UTF-8
+RUN apt-get update && apt-get dist-upgrade && apt-get install -y sudo locales && locale-gen en_US.UTF-8
 
 # Set the proper environment.
 ENV LANG="en_US.UTF-8"
@@ -85,7 +87,7 @@ ENV SNAP_ARCH="amd64"
 
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
-RUN apt-get update -qq -y && apt-get install -y -q --no-install-recommends \
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
     man \
     wget \
     curl \
@@ -99,15 +101,15 @@ ENV GOPATH="/go"
 RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
-RUN add-apt-repository -y ppa:longsleep/golang-backports && apt update -y
-RUN apt install -y golang-go
+RUN add-apt-repository -y ppa:longsleep/golang-backports
+RUN apt update -y && apt install -y golang-go
 
 
 
 ####################  devtools  ####################
 FROM golangcore AS devtools
 # Dependencies for https://github.com/tpoechtrager/osxcross:
-RUN apt-get update -qq && apt-get install -y -q --no-install-recommends \
+RUN apt-get update -y -qq && apt-get install -y -q --no-install-recommends \
     clang \
     cmake \
     file \
@@ -217,7 +219,7 @@ FROM gotools AS sugar
 # Install ohmyzsh
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 # And some sweet fonts
-RUN apt-get install -y fonts-powerline
+RUN apt-get update && apt-get install -y fonts-powerline
 
 # Add some non-core ohmyzsh plugins
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
