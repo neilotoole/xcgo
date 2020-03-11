@@ -1,4 +1,11 @@
-# derived originally from mh theme; it's a bit of a mess
+# This theme derived originally from mh theme; it's a bit of a mess
+# Most definitely open to improvements, with the following requirements:
+# - must show standard shell user thingy ($ #) as the last part of left prompt
+# - must show a good chunk of the current working dir
+# - must show git branch/dirty-status
+# - must show if the last return code was non-zero
+
+
 
 # features:
 # path is auto-shortened to ~64 characters

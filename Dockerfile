@@ -227,7 +227,9 @@ RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUS
 RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 # Enable some plugins by default
 RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
-
+# Yup, going to change the zsh theme, open to suggestions on a better default theme
+RUN wget https://raw.githubusercontent.com/neilotoole/xcgo/master/xcgo.zsh-theme -O ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/xcgo.zsh-theme
+RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="xcgo"/' ~/.zshrc
 
 WORKDIR "/root"
 
