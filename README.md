@@ -2,7 +2,8 @@
 `xcgo` is a maximalist builder image for cross-compiling and
 releasing CGo-enabled Go/Golang applications. It can build
 macOS, Windows and Linux targets for arch `amd64`.
-No effort has been made to provide support for other
+
+> No effort has been made to provide support for other
 archs such as `386`, but pull requests are welcome.
 
 `xcgo` has what gophers crave:
