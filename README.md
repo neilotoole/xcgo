@@ -9,6 +9,10 @@ macOS, Windows and Linux targets for arch `amd64`.
 > archs such as `386` (or for an OS beyond the three big ones),
 > but pull requests are welcome.
 
+> Also, no effort has been made to make this image slim. It's
+> maximalist, but for sure, the `Dockerfile` can be improved to be
+> slimmer. Again, pull requests are welcome.
+
 `xcgo` has what gophers crave:
 
 - `go 1.14`
