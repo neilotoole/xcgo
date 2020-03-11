@@ -94,6 +94,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     git \
     zsh \
     vim \
+    tree \
     software-properties-common
 
 
@@ -228,7 +229,7 @@ RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.
 RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
 
 
-WORKDIR "${GOPATH}/src"
+WORKDIR "/root"
 
 
 ####################  final  ####################
