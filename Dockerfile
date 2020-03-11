@@ -234,6 +234,7 @@ WORKDIR "${GOPATH}/src"
 ####################  final  ####################
 FROM sugar AS final
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
+ENV CGO_ENABLED=1
 ENTRYPOINT ["/entrypoint.sh"]
 COPY scripts/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
