@@ -95,6 +95,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     zsh \
     vim \
     tree \
+    less \
     software-properties-common
 
 
