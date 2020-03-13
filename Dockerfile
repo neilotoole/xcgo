@@ -18,8 +18,8 @@ ARG LIBTOOL_BASEURL="https://xcgo.s3.amazonaws.com/macos/libtool"
 
 
 
-####################  snapcore  ####################
-FROM ubuntu:bionic AS snapcore
+####################  snapbase  ####################
+FROM ubuntu:bionic AS snapbuilder
 # We build from ubuntu:bionic because we need snapcraft. It's difficult
 # to build a, say, Debian-based image with snapcraft. Note also that
 # the snapcore/snapcraft images are based upon ubuntu:xenial, but we
@@ -63,16 +63,18 @@ RUN snap_version="$(awk '/^version:/{print $2}' /snap/snapcraft/current/meta/sna
 RUN echo 'exec "$SNAP/usr/bin/python3" "$SNAP/bin/snapcraft" "$@"' >> /snap/bin/snapcraft
 RUN chmod +x /snap/bin/snapcraft
 
+
+
 ## Multi-stage build, only need the snaps from the builder. Copy them one at a
 ## time so they can be cached.
-#FROM ubuntu:xenial
-#COPY --from=builder /snap/core /snap/core
-#COPY --from=builder /snap/core18 /snap/core18
-#COPY --from=builder /snap/snapcraft /snap/snapcraft
-#COPY --from=builder /snap/bin/snapcraft /snap/bin/snapcraft
+FROM ubuntu:bionic AS snapcore
+COPY --from=snapbuilder /snap/core /snap/core
+COPY --from=snapbuilder /snap/core18 /snap/core18
+COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
+COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
 
 # Generate locale.
-RUN apt-get update && apt-get dist-upgrade && apt-get install -y sudo locales && locale-gen en_US.UTF-8
+RUN apt-get update -y && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
 
 # Set the proper environment.
 ENV LANG="en_US.UTF-8"
@@ -91,9 +93,10 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     man \
     wget \
     curl \
+    jq \
+    lsb-core \
     git \
     zsh \
-    vim \
     tree \
     less \
     software-properties-common
@@ -111,7 +114,7 @@ RUN apt update -y && apt install -y golang-go
 ####################  devtools  ####################
 FROM golangcore AS devtools
 # Dependencies for https://github.com/tpoechtrager/osxcross:
-RUN apt-get update -y -qq && apt-get install -y -q --no-install-recommends \
+RUN apt-get update -y -q && apt-get install -y -q --no-install-recommends \
     clang \
     cmake \
     file \
@@ -129,6 +132,7 @@ RUN apt-get update -y -qq && apt-get install -y -q --no-install-recommends \
     sqlite3 libsqlite3-dev
 
 ENV OSX_CROSS_PATH=/osxcross
+
 
 
 
@@ -175,8 +179,7 @@ RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bo
 
 ####################  docker  ####################
 FROM libtool AS docker
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
     apt-transport-https \
     ca-certificates \
     gnupg-agent
@@ -188,7 +191,7 @@ RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - &&
    $(lsb_release -cs) \
    stable"
 
-RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
+RUN apt-get update -y && apt-get install -y docker-ce docker-ce-cli
 
 
 
@@ -217,11 +220,15 @@ RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/i
 ####################  sugar  ####################
 # Adding some sugar-on-top, it's not like this image is going to be slim anyway.
 FROM gotools AS sugar
+ARG VIMGO_TAG="v1.22"
 
+WORKDIR /root
 # Install ohmyzsh
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-# And some sweet fonts
-RUN apt-get update && apt-get install -y fonts-powerline
+
+# Some other misc stuff, including sweet fonts
+RUN apt-get update && apt-get install -y --\
+    fonts-powerline
 
 # Add some non-core ohmyzsh plugins
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
@@ -232,7 +239,10 @@ RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-aut
 RUN wget https://raw.githubusercontent.com/neilotoole/xcgo/master/xcgo.zsh-theme -O ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/xcgo.zsh-theme
 RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="xcgo"/' ~/.zshrc
 
-WORKDIR "/root"
+# May as well add vim and vim-go
+RUN add-apt-repository ppa:jonathonf/vim && apt update -y && apt install -y vim
+RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME/.vim/pack/plugins/start/vim-go"
+
 
 
 ####################  final  ####################
@@ -240,8 +250,9 @@ FROM sugar AS final
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
 ENV CGO_ENABLED=1
 ENTRYPOINT ["/entrypoint.sh"]
-COPY scripts/entrypoint.sh /entrypoint.sh
+COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
 
 
 
