@@ -81,6 +81,7 @@ Comments for related projects are as of `2020-03-11`:
 - [Offical golang image](https://hub.docker.com/_/golang): doesn't support CGo
 - [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo): doesn't support `go1.14` or `snap`
 - [docker/golang-cross](https://github.com/docker/golang-cross): doesn't support `go1.14` or `snap`
+
 ## Acknowledgments
 
 - [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo)... great bunch of lads.

@@ -1,20 +1,20 @@
-# This neilotoole/xcgo Dockerfile builds a maximalist golang CGo-enabled
-# cross-compiling image with a bunch of developer tools on it. It can
-# build CGo apps on macOS, Linux, and Windows. It also contains supporting
-# tools such as Docker and snapcraft.
+# This neilotoole/xcgo Dockerfile builds a maximalist Go/Golang CGo-enabled
+# cross-compiling image It can build CGo apps on macOS, Linux, and Windows.
+# It also contains supporting tools such as docker and snapcraft.
+# See https://github.com/neilotoole/xcgo
 
 
-
+ARG OSX_SDK="MacOSX10.15.sdk"
+ARG OSX_CODENAME="catalina"
+ARG OSX_VERSION_MIN="10.10"
 # Note that xcgo.s3.amazonaws.com is xcgo's own S3 bucket that holds stuff
 # that's hard to find, e.g. macOS SDK.
-ARG OSX_SDK=MacOSX10.15.sdk
-ARG OSX_CODENAME=catalina
-ARG OSX_VERSION_MIN=10.10
-ARG OSX_SDK_SUM=d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8
 ARG OSX_SDK_BASEURL="https://xcgo.s3.amazonaws.com/macos/sdk"
-ARG OSX_CROSS_COMMIT=bee9df60f169abdbe88d8529dbcc1ec57acf656d
-ARG LIBTOOL_VERSION=2.4.6_1
+ARG OSX_SDK_SUM="d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8"
+ARG OSX_CROSS_COMMIT="bee9df60f169abdbe88d8529dbcc1ec57acf656d"
+ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://xcgo.s3.amazonaws.com/macos/libtool"
+ARG VIMGO_TAG="v1.22"
 
 
 
@@ -27,9 +27,7 @@ FROM ubuntu:bionic AS snapbuilder
 # packages for xenial). Also, we generically want to stay pretty current
 # with all the tech in this stack.
 
-LABEL maintainer="neilotoole@apache.org"
-
-# This section taken from snapcore/snapcraft:stable
+# This section lifted from snapcore/snapcraft:stable
 # Grab dependencies
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
       curl \
@@ -74,7 +72,7 @@ COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
 COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
 
 # Generate locale.
-RUN apt-get update -y && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
+RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
 
 # Set the proper environment.
 ENV LANG="en_US.UTF-8"
@@ -89,83 +87,74 @@ ENV SNAP_ARCH="amd64"
 
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-    man \
-    wget \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    git \
     jq \
     lsb-core \
-    git \
-    zsh \
-    tree \
-    less \
     software-properties-common
-
 
 ENV GOPATH="/go"
 RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
-RUN apt update -y && apt install -y golang-go
+RUN apt update && apt install -y golang-go
 
 
 
 ####################  devtools  ####################
 FROM golangcore AS devtools
-# Dependencies for https://github.com/tpoechtrager/osxcross:
-RUN apt-get update -y -q && apt-get install -y -q --no-install-recommends \
+# Dependencies for https://github.com/tpoechtrager/osxcross and some
+# other stuff.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     clang \
     cmake \
     file \
-    llvm \
-    patch \
-    build-essential \
-    libxml2-dev \
-    libssl-dev \
-    xz-utils \
-    zlib1g-dev  \
+    fonts-powerline \
+    gcc-mingw-w64 \
+    less \
     libc++-dev  \
     libltdl-dev \
-    gcc-mingw-w64 \
+    libsqlite3-dev \
+    libssl-dev \
+    libxml2-dev \
+    llvm \
+    man \
     parallel \
-    sqlite3 libsqlite3-dev
-
-ENV OSX_CROSS_PATH=/osxcross
-
-
-
-
-####################  osx-sdk  ####################
-FROM devtools AS osx-sdk
-ARG OSX_SDK
-ARG OSX_SDK_SUM
-ARG OSX_SDK_BASEURL
-ADD "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
-RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha256sum -c -
+    patch \
+    sqlite3 \
+    tree \
+    wget \
+    xz-utils \
+    zlib1g-dev  \
+    zsh
 
 
 
 ####################  osx-cross  ####################
+# See https://github.com/tpoechtrager/osxcross
 FROM devtools AS osx-cross
+ARG OSX_SDK
+ARG OSX_CODENAME
+ARG OSX_SDK_BASEURL
+ARG OSX_SDK_SUM
 ARG OSX_CROSS_COMMIT
+ARG OSX_VERSION_MIN
+ARG LIBTOOL_VERSION
+ARG LIBTOOL_BASEURL
+ENV OSX_CROSS_PATH=/osxcross
+
 WORKDIR "${OSX_CROSS_PATH}"
 RUN git clone https://github.com/tpoechtrager/osxcross.git . \
  && git checkout -q "${OSX_CROSS_COMMIT}" \
  && rm -rf ./.git
-COPY --from=osx-sdk "${OSX_CROSS_PATH}/." "${OSX_CROSS_PATH}/"
-ARG OSX_VERSION_MIN
+
+RUN curl -fsSL "${OSX_SDK_BASEURL}/${OSX_SDK}.tar.xz" -o "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz"
+RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha256sum -c -
+
 RUN UNATTENDED=yes OSX_VERSION_MIN=${OSX_VERSION_MIN} ./build.sh
-
-
-
-####################  libtool  ####################
-FROM osx-cross AS libtool
-ARG LIBTOOL_VERSION
-ARG LIBTOOL_BASEURL
-ARG OSX_CODENAME
-ARG OSX_SDK
-
 
 RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
 RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
@@ -175,10 +164,12 @@ RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bo
 		"libtool/${LIBTOOL_VERSION}/include/" \
 		"libtool/${LIBTOOL_VERSION}/lib/"
 
+WORKDIR /root
+
 
 
 ####################  docker  ####################
-FROM libtool AS docker
+FROM osx-cross AS docker
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     apt-transport-https \
     ca-certificates \
@@ -191,7 +182,7 @@ RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - &&
    $(lsb_release -cs) \
    stable"
 
-RUN apt-get update -y && apt-get install -y docker-ce docker-ce-cli
+RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
 
 
 
@@ -199,17 +190,17 @@ RUN apt-get update -y && apt-get install -y docker-ce docker-ce-cli
 FROM docker AS gotools
 # This section descended from https://github.com/mailchain/goreleaser-xcgo
 # Much gratitude to the mailchain team.
-ENV GORELEASER_VERSION=0.128.0
-ENV GORELEASER_SHA=2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4
-ENV GORELEASER_DOWNLOAD_FILE=goreleaser_Linux_x86_64.tar.gz
-ENV GORELEASER_DOWNLOAD_URL=https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}
+ENV GORELEASER_VERSION="0.128.0"
+ENV GORELEASER_SHA="2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4"
+ENV GORELEASER_DOWNLOAD_FILE="goreleaser_Linux_x86_64.tar.gz"
+ENV GORELEASER_DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}"
 
 RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
     echo "$GORELEASER_SHA $GORELEASER_DOWNLOAD_FILE" | sha256sum -c - || exit 1; \
     tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
     rm $GORELEASER_DOWNLOAD_FILE;
 
-# Let's add mage - https://magefile.org
+# Add mage - https://magefile.org
 RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go && rm -rf /tmp/mage
 
 # https://github.com/golangci/golangci-lint
@@ -220,15 +211,10 @@ RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/i
 ####################  sugar  ####################
 # Adding some sugar-on-top, it's not like this image is going to be slim anyway.
 FROM gotools AS sugar
-ARG VIMGO_TAG="v1.22"
+ARG VIMGO_TAG
 
-WORKDIR /root
 # Install ohmyzsh
 RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# Some other misc stuff, including sweet fonts
-RUN apt-get update && apt-get install -y --\
-    fonts-powerline
 
 # Add some non-core ohmyzsh plugins
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
@@ -245,14 +231,13 @@ RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME
 
 
 
-####################  final  ####################
-FROM sugar AS final
+####################  xcgo_final  ####################
+FROM sugar AS xcgo_final
+LABEL maintainer="neilotoole@apache.org"
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
 ENV CGO_ENABLED=1
-ENTRYPOINT ["/entrypoint.sh"]
+
+WORKDIR /root
 COPY ./entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-
-
-
+ENTRYPOINT ["/entrypoint.sh"]
