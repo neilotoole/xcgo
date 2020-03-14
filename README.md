@@ -36,17 +36,56 @@ To play around with the image, launch into zsh:
 $ docker run -it neilotoole/xcgo:latest zsh
 ```
 
-Quite probably you'll want to use `xcgo` in conjunction 
-with [goreleaser](http://goreleaser.com). 
+
+### go build
+
+From inside the docker container, we'll build (`amd64`) binaries for macOS, Linux, and Windows.
 
 ```shell script
-$ git clone https://github.com/neilotoole/sqlitr.git
-$ cd sqlitr
+$ git clone https://github.com/neilotoole/sqlitr.git && cd sqlitr
+$ GOOS=darwin GOARCH=amd64 CC=o64-clang CXX=o64-clang++ go build -o dist/darwin_amd64/sqlitr
+$ GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/sqlitr
+$ GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -o dist/windows_amd64/sqlitr.exe
+```
+You should end up with these:
+
+```shell script
+$ tree ./dist
+./dist
+├── darwin_amd64
+│   └── sqlitr
+├── linux_amd64
+│   └── sqlitr
+└── windows_amd64
+    └── sqlitr.exe
+```
+
+Running `file` on each of the binaries:
+
+```shell script
+./dist/darwin_amd64/sqlitr: Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL>
+
+./dist/linux_amd64/sqlitr: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/l, for GNU/Linux 3.2.0, BuildID[sha1]=9a130449828e21fc5ef935582d889bba0344432c, not stripped
+
+./dist/windows_amd64/sqlitr.exe: PE32+ executable (console) x86-64, for MS Windows
+```
+
+### goreleaser
+
+Quite possibly you'll want to use `xcgo` in conjunction 
+with [goreleaser](http://goreleaser.com). 
+
+On your local machine, we'll clone the `sqlitr` repo, mount it into the `xcgo` container and run `goreleaser`.
+
+```shell script
+$ git clone https://github.com/neilotoole/sqlitr.git && cd sqlitr
 $ docker run --rm --privileged \
 -v $(pwd):/go/src/github.com/neilotoole/sqlitr \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -w /go/src/github.com/neilotoole/sqlitr \
 neilotoole/xcgo:latest goreleaser --snapshot --rm-dist
+
+$ docker tree
 ```
 
 The above will build that CGo project via `goreleaser` with binaries for macOS, Linux, and Windows.
