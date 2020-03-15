@@ -177,5 +177,5 @@ Comments for related projects are as of `2020-03-14`:
 - [mingw](http://www.mingw.org/): fundamental to Windows capabilities.
 - [goreleaser](https://goreleaser.com): core to `xcgo`'s mission. 
 - [docker/golang-cross](https://github.com/docker/golang-cross): much gleaned from here.
-- [SQLite](https://www.sqlite.org/) and [mattn/sqlite3](https://github.com/mattn/sqlite3): the perfect use case, as seen in `xcgo`'s companion example project [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr).
+- [SQLite](https://www.sqlite.org/) and [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3): the perfect use case, as seen in `xcgo`'s companion example project [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr).
 - And many others, see [sqlitr/go.mod](https://github.com/neilotoole/sqlitr/blob/master/go.mod) at a minimum. If anybody has been overlooked, please open an [issue](https://github.com/neilotoole/xcgo/issues/new).
