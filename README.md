@@ -50,6 +50,14 @@ $ docker run -it neilotoole/xcgo:latest zsh
 
 From inside the docker container, we'll build (`amd64`) binaries for macOS, Linux, and Windows.
 
+Shell into the `xcgo` container if you haven't already done so:
+
+```shell script
+$ docker run -it neilotoole/xcgo:latest zsh
+```
+
+From inside the container:
+
 ```shell script
 $ git clone https://github.com/neilotoole/sqlitr.git && cd sqlitr
 $ GOOS=darwin GOARCH=amd64 CC=o64-clang CXX=o64-clang++ go build -o dist/darwin_amd64/sqlitr
