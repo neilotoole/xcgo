@@ -18,8 +18,10 @@ ARG VIMGO_TAG="v1.22"
 
 
 
-####################  snapbase  ####################
-FROM ubuntu:bionic AS snapbuilder
+####################  snapcore  ####################
+# FROM jrei/systemd-ubuntu:18.04 AS snapcore
+
+FROM ubuntu:bionic AS snapcore
 # We build from ubuntu:bionic because we need snapcraft. It's difficult
 # to build a, say, Debian-based image with snapcraft. Note also that
 # the snapcore/snapcraft images are based upon ubuntu:xenial, but we
@@ -61,15 +63,15 @@ RUN snap_version="$(awk '/^version:/{print $2}' /snap/snapcraft/current/meta/sna
 RUN echo 'exec "$SNAP/usr/bin/python3" "$SNAP/bin/snapcraft" "$@"' >> /snap/bin/snapcraft
 RUN chmod +x /snap/bin/snapcraft
 
-
+RUN apt update && apt install -y snapd
 
 ## Multi-stage build, only need the snaps from the builder. Copy them one at a
 ## time so they can be cached.
-FROM ubuntu:bionic AS snapcore
-COPY --from=snapbuilder /snap/core /snap/core
-COPY --from=snapbuilder /snap/core18 /snap/core18
-COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
-COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
+#FROM ubuntu:bionic AS snapcore
+#COPY --from=snapbuilder /snap/core /snap/core
+#COPY --from=snapbuilder /snap/core18 /snap/core18
+#COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
+#COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
 
 # Generate locale.
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
@@ -83,7 +85,9 @@ ENV SNAP="/snap/snapcraft/current"
 ENV SNAP_NAME="snapcraft"
 ENV SNAP_ARCH="amd64"
 
-
+# docker run -it jrei/systemd-ubuntu bash
+# apt update && apt install -y snapd
+# systemctl status snapd.service
 
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
@@ -103,10 +107,14 @@ RUN apt update && apt install -y golang-go
 
 
 
+
+
 ####################  devtools  ####################
 FROM golangcore AS devtools
 # Dependencies for https://github.com/tpoechtrager/osxcross and some
 # other stuff.
+
+# Install the MinGW C compiler gcc-mingw-w64-i686, gcc-mingw-w64-x86-64 for Win32, Win64, respectively.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
@@ -222,12 +230,12 @@ RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.
 # Enable some plugins by default
 RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
 # Yup, going to change the zsh theme, open to suggestions on a better default theme
-RUN wget https://raw.githubusercontent.com/neilotoole/xcgo/master/xcgo.zsh-theme -O ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/xcgo.zsh-theme
+ADD xcgo.zsh-theme /root/.oh-my-zsh/custom/themes/xcgo.zsh-theme
 RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="xcgo"/' ~/.zshrc
 
-# May as well add vim and vim-go
-RUN add-apt-repository ppa:jonathonf/vim && apt update -y && apt install -y vim
-RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME/.vim/pack/plugins/start/vim-go"
+# May as well add vim
+#RUN add-apt-repository ppa:jonathonf/vim && apt update -y && apt install -y vim
+#RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME/.vim/pack/plugins/start/vim-go"
 
 
 

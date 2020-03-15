@@ -33,8 +33,8 @@
 # if superuser make the username green
 if [ $UID -eq 0 ]; then NCOLOR="green"; else NCOLOR="white"; fi
 
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$reset_color%}("
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}) "
+ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[yellow]%}("
+ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}%{$fg[yellow]%})%{$reset_color%} "
 ZSH_THEME_GIT_PROMPT_CLEAN=""
 ZSH_THEME_GIT_PROMPT_DIRTY="%{$fg_bold[red]%}*"
 
@@ -56,4 +56,4 @@ function check_last_exit_code() {
 }
 
 # prompt
-PROMPT='$(check_last_exit_code)$(git_prompt_info) %{$fg[green]%}%32<...<%~%<<%{$reset_color%} %(!.#.$) '
+PROMPT='$(check_last_exit_code)%{$fg[cyan]%}$(hostname)%{$reset_color%}:%{$fg[blue]%}%32<...<%~%<<%{$reset_color%} $(git_prompt_info)%(!.#.$) '
