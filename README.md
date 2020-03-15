@@ -1,21 +1,14 @@
 # neilotoole/xcgo
 
 `xcgo` is a maximalist Docker image for cross-compiling and
-releasing/distrubting CGo-enabled Go/Golang applications. It can build
+releasing/distributing CGo-enabled Go/Golang applications. It can build and dist
 macOS, Windows and Linux CGo projects for arch `amd64`.
-
-> No effort has yet been made to provide support for other
-> archs such as `386` (or for an OS beyond the three big ones),
-> but pull requests are welcome.
-
-> Also, no effort has been made to make this image slim. `xcgo` by mission is
-> maximalist (`3GB+` image), but it seems highly likely the `Dockerfile` can be slimmed down. Again, pull requests are welcome.
 
 `xcgo` has what gophers crave:
 
 - `go 1.14`
-- `macOS SDK 10.15` Catalina
-- `docker` CLI
+- `OSX SDK` Catalina / `macOS 10.15`
+- `docker`
 - `snapcraft`
 - `goreleaser`
 - `golangci-lint`
@@ -23,9 +16,25 @@ macOS, Windows and Linux CGo projects for arch `amd64`.
 - `zsh` and `oh-my-zsh`
 - and a bunch of other stuff.
 
-There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to demonstrate `xcgo`, that's the best place to start. It demonstrates pretty much the entire array of `xcgo`'s capabilities: it releases to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc.
+The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc.
 
-To play around with the `xcgo` image, launch into zsh:
+> Note: No effort has yet been made to provide support for other
+> archs such as `386` (or for an OS beyond the typical three),
+> but pull requests are welcome. Note also that no effort has been
+> made to make this image slim. `xcgo` by mission is
+> maximalist (it's a 3GB+ image), but I'm sure the `Dockerfile` 
+> can be slimmed down. Again, pull requests are welcome.
+
+## Usage
+
+You can test `xcgo` with:
+
+```shell script
+$ docker run -it neilotoole/xcgo:latest go version
+go version go1.14 linux/amd64
+```
+
+To play around in the container, launch into a shell:
 
 ```shell script
 $ docker run -it neilotoole/xcgo:latest zsh
@@ -33,13 +42,11 @@ $ docker run -it neilotoole/xcgo:latest zsh
 
 `xcgo` doesn't prescribe a particular usage approach. Some possibilities:
 
-- Launch a container shell session, clone your repo, and build (or even edit) within the container. 
+- Launch a container shell session, clone your repo, and build (or even edit and do all your work) within the container. 
 - Mount your local repo into the container, shell in, and build from within the container.
-- Invoke `xcgo` with `goreleaser` (local repo mounted) -- this is pretty typical.
+- With local repo mounted, invoke `xcgo` with `goreleaser`: this is pretty typical.
 
-Let's look at a few of these approaches:
-
-## `go build` inside container
+### Example: `go build` inside container
 
 From inside the docker container, we'll build (`amd64`) binaries for macOS, Linux, and Windows.
 
@@ -49,7 +56,7 @@ $ GOOS=darwin GOARCH=amd64 CC=o64-clang CXX=o64-clang++ go build -o dist/darwin_
 $ GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/sqlitr
 $ GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -o dist/windows_amd64/sqlitr.exe
 ```
-You should end up with these:
+You should end up with something like this:
 
 ```shell script
 $ tree ./dist
@@ -62,17 +69,7 @@ $ tree ./dist
     └── sqlitr.exe
 ```
 
-Running `file` on each of the binaries:
-
-```shell script
-./dist/darwin_amd64/sqlitr: Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL>
-./dist/linux_amd64/sqlitr: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/l, for GNU/Linux 3.2.0, BuildID[sha1]=9a130449828e21fc5ef935582d889bba0344432c, not stripped
-./dist/windows_amd64/sqlitr.exe: PE32+ executable (console) x86-64, for MS Windows
-```
-
-> Note that the linux binary listed above is dynamically linked. There are additional steps you can take to statically link instead (useful if you're distributing on an Alpine image for example). See [sqlitr .goreleaser.yml](https://github.com/neilotoole/sqlitr/blob/master/.goreleaser.yml) `build_linux` section.
-
-## `goreleaser`
+### Example: `goreleaser`
 
 Quite possibly you'll want to use `xcgo` in conjunction 
 with [goreleaser](http://goreleaser.com). 
@@ -86,8 +83,6 @@ $ docker run --rm --privileged \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -w /go/src/github.com/neilotoole/sqlitr \
 neilotoole/xcgo:latest goreleaser --snapshot --rm-dist
-
-$ tree ./dist
 ```
 
 The above will build that CGo project via `goreleaser` with binaries for macOS, Linux, and Windows.
@@ -115,63 +110,70 @@ $ tree ./dist
 └── sqlitr_0.1.10_windows_amd64.zip
 ```
 
-The above example uses `goreleaser --snapshot`. To actually publish artifacts (`brew`, `scoop`, `snap`, `dockerhub`, etc), you need to inject appropriate secrets into the `xcgo` container. In this next example we pass secrets for GitHub, `docker`, and `snapcraft`.
-
-> Note that this example actually won't succeed for you (as you don't have the secrets)
-
-```shell script
-docker run --rm --privileged \
--v $(pwd):/go/src/github.com/neilotoole/sqlitr \
--v /var/run/docker.sock:/var/run/docker.sock \
--e "GITHUB_TOKEN=$GITHUB_TOKEN" \
--e "DOCKER_USERNAME=$DOCKER_USERNAME" -e "DOCKER_PASSWORD=$DOCKER_PASSWORD" -e "DOCKER_REGISTRY=$DOCKER_REGISTRY" \
--v "${HOME}/.snapcraft.login":/.snapcraft.login \
--w /go/src/github.com/neilotoole/sqlitr \
-neilotoole/xcgo:latest goreleaser --rm-dist
-```
-
-Again, see the [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr) example project for more.
-
-## `xcgo` Parameterization
-There are a few 
+Again, see the [wiki](https://github.com/neilotoole/xcgo/wiki) for more.
 
 
+## Parameterization
+Some params that can be passed to `xcgo` (as args to `docker run`):
 
-> Note: much of the `xcgo` container parameterization effectively feeds `goreleaser`. 
+- **Docker:** `-e DOCKER_USERNAME=X -e DOCKER_PASSWORD=X`
+	
+	When present, `xcgo`'s `entrypoint.sh` performs a `docker login`.
+	Supply `-e DOCKER_REGISTRY=X` to use a registry other than Docker Hub.
+	
+- **GitHub:** `-e GITHUB_TOKEN=X` or `-e GORELEASER_GITHUB_TOKEN=X`
 
-```
--e GITHUB_TOKEN=X
-# or
--e GORELEASER_GITHUB_TOKEN=X
+	Used to publish artifacts to GitHub (e.g. by `goreleaser`).
 
-# docker registry (typically docker hub)
--e DOCKER_USERNAME=X -e DOCKER_PASSWORD=X -e DOCKER_REGISTRY=X
+- **Snapcraft:** `-v "${HOME}/.snapcraft.login":/.snapcraft.login`
 
-# snapcraft
--v "${HOME}/.snapcraft.login":/.snapcraft.login
-# optionally 
--e SNAPCRAFT_LOGIN_FILE=/some/where/.snapcraft.login
+	When `/.snapcraft.login` is present in the `xcgo` container, `entrypoint.sh`
+	performs a `snapcraft` login. This enables uses of `snapcraft`, e.g. by `goreleaser`
+	to publish a `snap`.
+	Supply `-e SNAPCRAFT_LOGIN_FILE=/other/place/.snapcraft.login` to specify an
+	alternative mount location for the login file. See the [wiki](https://github.com/neilotoole/xcgo/wiki/Snapcraft) for more.
 
-```
+## Issues
+
+First, consult the [wiki](https://github.com/neilotoole/xcgo/wiki) and
+the [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr) example project.
+Then open an [issue](https://github.com/neilotoole/xcgo/issues).
 
 
-## Feedback, issues, changes
 
-Open a GitHub [issue](https://github.com/neilotoole/xcgo/issues). Also, see the [wiki](https://github.com/neilotoole/xcgo/wiki).
+## FAQ
+
+### Why does `xcgo` exist?
+It's hard to do CGo cross-compilation. Speaking as of `2020-03-14`, if you want to do `go1.14` releases using the full capabilities of `goreleaser`, there doesn't seem to be anything else out there . In particular, releasing a `snap` is a PITA. For `snap`, you basically should start with an Ubuntu-based image (as opposed to most `golang`-related images, which are Debian).
+
+Case in point: the `goreleaser` page for [CGo](https://goreleaser.com/cgo/) states: _"Unfortunately, GoReleaser does not support CGO"_.
+
+It shouldn't be this hard.
+
+I don't think that CGo is that much of a rare beast that it should be so tricky. IMHO, every Go development effort should be able to at least consider using `SQLite`, without being scared off by the build / dist hassles involved. 
+
+Again IMHO, being that there's an official `golang:latest` docker image, I could envision an official `golang-xcgo:latest` image that provides the basics of what this image does. I wouldn't expect such an image to include everything that `neilotoole/xcgo` does, such as `goreleaser` or `mage`, or `snapcraft`. That would imply "blessing" those third-party efforts as somewhat official, and I firmly agree with the Go team's approach of generally being conservative in expanding the language or toolchain.
+
+### Why is the `xcgo` image so big?
+There's a lot going on. If you're releasing a multi-platform CGO-enabled project, you probably aren't really worried about this. But pull requests to slim the image are welcome.
+
+### What about `arm`, `32-bit` etc?
+The aim of `xcgo` is to support pretty much every even-somewhat-common Go/CGo release use case. Send a pull request or open an issue.
 
 ## Related Projects
 
-Comments for related projects are as of `2020-03-11`:
+Comments for related projects are as of `2020-03-14`:
 
-- [Offical golang image](https://hub.docker.com/_/golang): doesn't support CGo
-- [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo): doesn't support `go1.14` or `snap`
-- [docker/golang-cross](https://github.com/docker/golang-cross): doesn't support `go1.14` or `snap`
+- [Official golang image](https://hub.docker.com/_/golang): doesn't support CGo.
+- [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo): doesn't support `go1.14` or `snapcraft`.
+- [docker/golang-cross](https://github.com/docker/golang-cross): doesn't support `go1.14` or `snapcraft`.
 
 ## Acknowledgments
 
-- [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo): this was the original starting point for `xcgo`. 
-- [tpoechtrager/osxcross](https://github.com/tpoechtrager/osxcross): utterly fundamental to the `macOS` capabilities.
-- [goreleaser](https://goreleaser.com): obviously core to `xcgo`'s mission. 
-- [docker/golang-cross](https://github.com/docker/golang-cross)
-- [mattn/sqlite3](https://github.com/mattn/sqlite3)
-- Many others, see [sqlitr/go.mod](https://github.com/neilotoole/sqlitr/blob/master/go.mod) at a minimum. If anybody has been omitted from this list, please [open an issue](https://github.com/neilotoole/xcgo/issues/new).
+- [mailchain/goreleaser-xcgo](https://github.com/mailchain/goreleaser-xcgo): this was the original fork point for `xcgo`. 
+- [tpoechtrager/osxcross](https://github.com/tpoechtrager/osxcross): fundamental to macOS capabilities.
+- [mingw](http://www.mingw.org/): fundamental to Windows capabilities.
+- [goreleaser](https://goreleaser.com): core to `xcgo`'s mission. 
+- [docker/golang-cross](https://github.com/docker/golang-cross): much gleaned from here.
+- [SQLite](https://www.sqlite.org/) and [mattn/sqlite3](https://github.com/mattn/sqlite3): the perfect use case, as seen in `xcgo`'s companion example project [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr).
+- And many others, see [sqlitr/go.mod](https://github.com/neilotoole/sqlitr/blob/master/go.mod) at a minimum. If anybody has been overlooked, please open an [issue](https://github.com/neilotoole/xcgo/issues/new).
