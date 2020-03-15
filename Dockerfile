@@ -3,7 +3,6 @@
 # It also contains supporting tools such as docker and snapcraft.
 # See https://github.com/neilotoole/xcgo
 
-
 ARG OSX_SDK="MacOSX10.15.sdk"
 ARG OSX_CODENAME="catalina"
 ARG OSX_VERSION_MIN="10.10"
@@ -17,7 +16,6 @@ ARG LIBTOOL_BASEURL="https://xcgo.s3.amazonaws.com/macos/libtool"
 ARG VIMGO_TAG="v1.22"
 
 
-
 ####################  snapbuilder ####################
 FROM ubuntu:bionic AS snapbuilder
 # We build from ubuntu:bionic because we need snapcraft. It's difficult
@@ -28,12 +26,11 @@ FROM ubuntu:bionic AS snapbuilder
 # with all the tech in this stack.
 
 # This section lifted from snapcore/snapcraft:stable
-# Grab dependencies
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
       curl \
       jq \
-      squashfs-tools \
-      lsb-core
+      lsb-core \
+      squashfs-tools
 
 # Grab the core snap (for backwards compatibility) from the stable channel and
 # unpack it in the proper place.
@@ -47,8 +44,7 @@ RUN curl -L $(curl -H 'X-Ubuntu-Series: 16' 'https://api.snapcraft.io/api/v1/sna
 RUN mkdir -p /snap/core18
 RUN unsquashfs -d /snap/core18/current core18.snap
 
-# Grab the snapcraft snap from the stable channel and unpack it in the proper
-# place.
+# Grab the snapcraft snap from the stable channel and unpack it in the proper place.
 RUN curl -L $(curl -H 'X-Ubuntu-Series: 16' 'https://api.snapcraft.io/api/v1/snaps/details/snapcraft?channel=stable' | jq '.download_url' -r) --output snapcraft.snap
 RUN mkdir -p /snap/snapcraft
 RUN unsquashfs -d /snap/snapcraft/current snapcraft.snap
@@ -62,6 +58,8 @@ RUN chmod +x /snap/bin/snapcraft
 
 RUN apt update && apt install -y snapd
 
+
+####################  snapcore ####################
 ## Multi-stage build, only need the snaps from the builder. Copy them one at a
 ## time so they can be cached.
 FROM ubuntu:bionic AS snapcore
@@ -82,6 +80,7 @@ ENV SNAP="/snap/snapcraft/current"
 ENV SNAP_NAME="snapcraft"
 ENV SNAP_ARCH="amd64"
 
+
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -97,7 +96,6 @@ RUN mkdir -p "${GOPATH}/src"
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
 RUN apt update && apt install -y golang-go
-
 
 
 ####################  devtools  ####################
@@ -127,9 +125,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tree \
     wget \
     xz-utils \
-    zlib1g-dev  \
+    zlib1g-dev \
     zsh
-
 
 
 ####################  osx-cross  ####################
@@ -156,15 +153,12 @@ RUN echo "${OSX_SDK_SUM}"  "${OSX_CROSS_PATH}/tarballs/${OSX_SDK}.tar.xz" | sha2
 RUN UNATTENDED=yes OSX_VERSION_MIN=${OSX_VERSION_MIN} ./build.sh
 
 RUN mkdir -p "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/"
-RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" \
-	| gzip -dc | tar xf - \
-		-C "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/" \
-		--strip-components=2 \
-		"libtool/${LIBTOOL_VERSION}/include/" \
-		"libtool/${LIBTOOL_VERSION}/lib/"
+RUN curl -fsSL "${LIBTOOL_BASEURL}/libtool-${LIBTOOL_VERSION}.${OSX_CODENAME}.bottle.tar.gz" | \
+    gzip -dc | \
+    tar xf - -C "${OSX_CROSS_PATH}/target/SDK/${OSX_SDK}/usr/" \
+      --strip-components=2  "libtool/${LIBTOOL_VERSION}/include/" "libtool/${LIBTOOL_VERSION}/lib/"
 
 WORKDIR /root
-
 
 
 ####################  docker  ####################
@@ -174,7 +168,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     ca-certificates \
     gnupg-agent
 
-
 RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - && \
    add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
@@ -182,7 +175,6 @@ RUN curl -fsSL "https://download.docker.com/linux/ubuntu/gpg" | apt-key add - &&
    stable"
 
 RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
-
 
 
 ####################  gotools  ####################
@@ -206,7 +198,6 @@ RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go r
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8
 
 
-
 ####################  sugar  ####################
 # Adding some sugar-on-top, it's not like this image is going to be slim anyway.
 FROM gotools AS sugar
@@ -227,7 +218,6 @@ RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="xcgo"/' ~/.zshrc
 # May as well add vim
 #RUN add-apt-repository ppa:jonathonf/vim && apt update -y && apt install -y vim
 #RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME/.vim/pack/plugins/start/vim-go"
-
 
 
 ####################  xcgo_final  ####################

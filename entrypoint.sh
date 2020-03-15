@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-
 # This section lifted from mailchain/goreleaser-xcgo
 # Note: you probably want to use an access token
 # for $DOCKER_PASSWORD rather than your real password.
 # See: https://docs.docker.com/docker-hub/access-tokens/
 if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ]; then
     echo "Login to docker using $DOCKER_USERNAME ..."
-    if docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY;
+    if docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" "$DOCKER_REGISTRY";
     then
       echo "Logged into docker"
       echo
@@ -16,7 +15,6 @@ if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ]; then
     fi
 fi
 
-
 # Workaround for github actions when access to different repositories is needed.
 # Github actions provides a GITHUB_TOKEN secret that can only access the current
 # repository and you cannot configure it's value.
@@ -24,7 +22,6 @@ fi
 if [ -n "$GORELEASER_GITHUB_TOKEN" ] ; then
   export GITHUB_TOKEN=$GORELEASER_GITHUB_TOKEN
 fi
-
 
 # To use snapcraft, you must supply a snapcraft login file.
 # If the login file is on your host at ~/.snapcraft.login then mount
