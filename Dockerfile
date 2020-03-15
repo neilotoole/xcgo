@@ -18,15 +18,13 @@ ARG VIMGO_TAG="v1.22"
 
 
 
-####################  snapcore  ####################
-# FROM jrei/systemd-ubuntu:18.04 AS snapcore
-
-FROM ubuntu:bionic AS snapcore
+####################  snapbuilder ####################
+FROM ubuntu:bionic AS snapbuilder
 # We build from ubuntu:bionic because we need snapcraft. It's difficult
-# to build a, say, Debian-based image with snapcraft. Note also that
+# to build, say, a Debian-based image with snapcraft included. Note also that
 # the snapcore/snapcraft images are based upon ubuntu:xenial, but we
 # want ubuntu:bionic (some things we want, e.g. go1.14, don't have good
-# packages for xenial). Also, we generically want to stay pretty current
+# packages for xenial). Also, generically, want to stay pretty current
 # with all the tech in this stack.
 
 # This section lifted from snapcore/snapcraft:stable
@@ -55,8 +53,7 @@ RUN curl -L $(curl -H 'X-Ubuntu-Series: 16' 'https://api.snapcraft.io/api/v1/sna
 RUN mkdir -p /snap/snapcraft
 RUN unsquashfs -d /snap/snapcraft/current snapcraft.snap
 
-# Create a snapcraft runner (TODO: move version detection to the core of
-# snapcraft).
+# Create a snapcraft runner
 RUN mkdir -p /snap/bin
 RUN echo "#!/bin/sh" > /snap/bin/snapcraft
 RUN snap_version="$(awk '/^version:/{print $2}' /snap/snapcraft/current/meta/snap.yaml)" && echo "export SNAP_VERSION=\"$snap_version\"" >> /snap/bin/snapcraft
@@ -67,11 +64,11 @@ RUN apt update && apt install -y snapd
 
 ## Multi-stage build, only need the snaps from the builder. Copy them one at a
 ## time so they can be cached.
-#FROM ubuntu:bionic AS snapcore
-#COPY --from=snapbuilder /snap/core /snap/core
-#COPY --from=snapbuilder /snap/core18 /snap/core18
-#COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
-#COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
+FROM ubuntu:bionic AS snapcore
+COPY --from=snapbuilder /snap/core /snap/core
+COPY --from=snapbuilder /snap/core18 /snap/core18
+COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
+COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
 
 # Generate locale.
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
@@ -84,10 +81,6 @@ ENV PATH="/snap/bin:$PATH"
 ENV SNAP="/snap/snapcraft/current"
 ENV SNAP_NAME="snapcraft"
 ENV SNAP_ARCH="amd64"
-
-# docker run -it jrei/systemd-ubuntu bash
-# apt update && apt install -y snapd
-# systemctl status snapd.service
 
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
@@ -104,8 +97,6 @@ RUN mkdir -p "${GOPATH}/src"
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
 RUN apt update && apt install -y golang-go
-
-
 
 
 

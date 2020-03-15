@@ -88,7 +88,7 @@ neilotoole/xcgo:latest goreleaser --snapshot --rm-dist
 The above will build that CGo project via `goreleaser` with binaries for macOS, Linux, and Windows.
 
 ```shell script
-$ tree ./dist
+$ tree ./dist                                                                           130   master
 ./dist
 ├── build_linux_linux_amd64
 │   └── sqlitr
@@ -98,16 +98,24 @@ $ tree ./dist
 │   └── sqlitr.exe
 ├── checksums.txt
 ├── config.yaml
-├── sqlitr.rb
-├── sqlitr_0.1.10_darwin_amd64.tar.gz
-├── sqlitr_0.1.10_linux_amd64
+├── goreleaserdocker393975300
+│   ├── Dockerfile
+│   ├── LICENSE
+│   ├── README.md
+│   ├── sqlitr
+│   └── testdata
+│       └── example.sqlite
+├── sqlitr_v0.1.23-snapshot_darwin_amd64.tar.gz
+├── sqlitr_v0.1.23-snapshot_linux_amd64
 │   └── prime
 │       ├── meta
 │       │   └── snap.yaml
 │       └── sqlitr
-├── sqlitr_0.1.10_linux_amd64.snap
-├── sqlitr_0.1.10_linux_amd64.tar.gz
-└── sqlitr_0.1.10_windows_amd64.zip
+├── sqlitr_v0.1.23-snapshot_linux_amd64.deb
+├── sqlitr_v0.1.23-snapshot_linux_amd64.rpm
+├── sqlitr_v0.1.23-snapshot_linux_amd64.snap
+├── sqlitr_v0.1.23-snapshot_linux_amd64.tar.gz
+└── sqlitr_v0.1.23-snapshot_windows_amd64.zip
 ```
 
 Again, see the [wiki](https://github.com/neilotoole/xcgo/wiki) for more.
@@ -143,22 +151,7 @@ Then open an [issue](https://github.com/neilotoole/xcgo/issues).
 
 ## FAQ
 
-### Why does `xcgo` exist?
-It's hard to do CGo cross-compilation. Speaking as of `2020-03-14`, if you want to do `go1.14` releases using the full capabilities of `goreleaser`, there doesn't seem to be anything else out there . In particular, releasing a `snap` is a PITA. For `snap`, you basically should start with an Ubuntu-based image (as opposed to most `golang`-related images, which are Debian).
-
-Case in point: the `goreleaser` page for [CGo](https://goreleaser.com/cgo/) states: _"Unfortunately, GoReleaser does not support CGO"_.
-
-It shouldn't be this hard.
-
-I don't think that CGo is that much of a rare beast that it should be so tricky. IMHO, every Go development effort should be able to at least consider using `SQLite`, without being scared off by the build / dist hassles involved. 
-
-Again IMHO, being that there's an official `golang:latest` docker image, I could envision an official `golang-xcgo:latest` image that provides the basics of what this image does. I wouldn't expect such an image to include everything that `neilotoole/xcgo` does, such as `goreleaser` or `mage`, or `snapcraft`. That would imply "blessing" those third-party efforts as somewhat official, and I firmly agree with the Go team's approach of generally being conservative in expanding the language or toolchain.
-
-### Why is the `xcgo` image so big?
-There's a lot going on. If you're releasing a multi-platform CGO-enabled project, you probably aren't really worried about this. But pull requests to slim the image are welcome.
-
-### What about `arm`, `32-bit` etc?
-The aim of `xcgo` is to support pretty much every even-somewhat-common Go/CGo release use case. Send a pull request or open an issue.
+See FAQ on [wiki](https://github.com/neilotoole/xcgo/wiki/FAQ).
 
 ## Related Projects
 
