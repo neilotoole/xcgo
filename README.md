@@ -1,7 +1,7 @@
 # neilotoole/xcgo
 
 `xcgo` is a maximalist Docker image for cross-compiling and
-releasing/distributing CGo-enabled Go/Golang applications. It can build and dist
+releasing/distributing CGo-enabled Go/Golang applications. At this time, it can build and dist
 macOS, Windows and Linux CGo projects for arch `amd64`.
 
 `xcgo` has what gophers crave:
@@ -16,7 +16,7 @@ macOS, Windows and Linux CGo projects for arch `amd64`.
 - `zsh` and `oh-my-zsh`
 - and a bunch of other stuff.
 
-The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc.
+The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc. The `neilotoole/xcgo` images are published to [Docker Hub](https://hub.docker.com/repository/docker/neilotoole/xcgo).
 
 > Note: No effort has yet been made to provide support for other
 > archs such as `386` (or for an OS beyond the typical three),
