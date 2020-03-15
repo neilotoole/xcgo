@@ -146,6 +146,7 @@ Some params that can be passed to `xcgo` (as args to `docker run`):
 	When `/.snapcraft.login` is present in the `xcgo` container, `entrypoint.sh`
 	performs a `snapcraft` login. This enables use of `snapcraft`, e.g. by `goreleaser`
 	to publish a `snap`.
+	
 	Supply `-e SNAPCRAFT_LOGIN_FILE=/other/place/.snapcraft.login` to specify an
 	alternative mount location for the login file. See the [wiki](https://github.com/neilotoole/xcgo/wiki/Snapcraft) for more.
 
