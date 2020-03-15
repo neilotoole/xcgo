@@ -96,7 +96,7 @@ neilotoole/xcgo:latest goreleaser --snapshot --rm-dist
 The above will build that CGo project via `goreleaser` with binaries for macOS, Linux, and Windows.
 
 ```shell script
-$ tree ./dist                                                                           130   master
+$ tree ./dist
 ./dist
 ├── build_linux_linux_amd64
 │   └── sqlitr
