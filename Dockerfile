@@ -2,19 +2,17 @@
 # cross-compiling image It can build CGo apps on macOS, Linux, and Windows.
 # It also contains supporting tools such as docker and snapcraft.
 # See https://github.com/neilotoole/xcgo
-
-
 ARG OSX_SDK="MacOSX10.15.sdk"
 ARG OSX_CODENAME="catalina"
 ARG OSX_VERSION_MIN="10.10"
-# Note that xcgo.s3.amazonaws.com is xcgo's own S3 bucket that holds stuff
-# that's hard to find, e.g. macOS SDK.
-ARG OSX_SDK_BASEURL="https://xcgo.s3.amazonaws.com/macos/sdk"
+ARG OSX_SDK_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG OSX_SDK_SUM="d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8"
 ARG OSX_CROSS_COMMIT="bee9df60f169abdbe88d8529dbcc1ec57acf656d"
 ARG LIBTOOL_VERSION="2.4.6_1"
-ARG LIBTOOL_BASEURL="https://xcgo.s3.amazonaws.com/macos/libtool"
-ARG VIMGO_TAG="v1.22"
+ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
+ARG GOLANGCI_LINT_VERSION="1.23.8"
+ARG GORELEASER_VERSION="0.128.0"
+ARG GORELEASER_SHA="2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4"
 
 
 
@@ -32,8 +30,9 @@ FROM ubuntu:bionic AS snapbuilder
 RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
       curl \
       jq \
-      squashfs-tools \
-      lsb-core
+      lsb-core \
+      squashfs-tools
+
 
 # Grab the core snap (for backwards compatibility) from the stable channel and
 # unpack it in the proper place.
@@ -105,15 +104,15 @@ FROM golangcore AS devtools
 # Dependencies for https://github.com/tpoechtrager/osxcross and some
 # other stuff.
 
-# Install the MinGW C compiler gcc-mingw-w64-i686, gcc-mingw-w64-x86-64 for Win32, Win64, respectively.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     cmake \
     file \
-    fonts-powerline \
-    gcc-mingw-w64 \
+    gcc-mingw-w64 gcc-mingw-w64-i686 gcc-mingw-w64-x86-64 \
     less \
+    libc6-dev \
+    libc6-dev-i386 \
     libc++-dev  \
     libltdl-dev \
     libsqlite3-dev \
@@ -125,6 +124,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     patch \
     sqlite3 \
     tree \
+    vim \
     wget \
     xz-utils \
     zlib1g-dev  \
@@ -189,10 +189,11 @@ RUN apt-get update && apt-get install -y docker-ce docker-ce-cli
 FROM docker AS gotools
 # This section descended from https://github.com/mailchain/goreleaser-xcgo
 # Much gratitude to the mailchain team.
-ENV GORELEASER_VERSION="0.128.0"
-ENV GORELEASER_SHA="2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4"
-ENV GORELEASER_DOWNLOAD_FILE="goreleaser_Linux_x86_64.tar.gz"
-ENV GORELEASER_DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}"
+ARG GORELEASER_VERSION
+ARG GORELEASER_SHA
+ARG GORELEASER_DOWNLOAD_FILE="goreleaser_Linux_x86_64.tar.gz"
+ARG GORELEASER_DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}"
+ARG GOLANGCI_LINT_VERSION
 
 RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
     echo "$GORELEASER_SHA $GORELEASER_DOWNLOAD_FILE" | sha256sum -c - || exit 1; \
@@ -203,35 +204,12 @@ RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
 RUN cd /tmp && git clone https://github.com/magefile/mage.git && cd mage && go run bootstrap.go && rm -rf /tmp/mage
 
 # https://github.com/golangci/golangci-lint
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.8
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin "v${GOLANGCI_LINT_VERSION}"
 
 
 
-####################  sugar  ####################
-# Adding some sugar-on-top, it's not like this image is going to be slim anyway.
-FROM gotools AS sugar
-ARG VIMGO_TAG
-
-# Install ohmyzsh
-RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# Add some non-core ohmyzsh plugins
-RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-RUN git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-# Enable some plugins by default
-RUN sed -i 's/plugins=(git)/plugins=( git golang zsh-syntax-highlighting zsh-autosuggestions docker ubuntu )/' ~/.zshrc
-# Yup, going to change the zsh theme, open to suggestions on a better default theme
-ADD xcgo.zsh-theme /root/.oh-my-zsh/custom/themes/xcgo.zsh-theme
-RUN sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="xcgo"/' ~/.zshrc
-
-# May as well add vim
-#RUN add-apt-repository ppa:jonathonf/vim && apt update -y && apt install -y vim
-#RUN git clone --branch="${VIMGO_TAG}" https://github.com/fatih/vim-go.git "$HOME/.vim/pack/plugins/start/vim-go"
-
-
-
-####################  xcgo_final  ####################
-FROM sugar AS xcgo_final
+####################  xcgo-final  ####################
+FROM gotools AS xcgo-final
 LABEL maintainer="neilotoole@apache.org"
 ENV PATH=${OSX_CROSS_PATH}/target/bin:$PATH:${GOPATH}/bin
 ENV CGO_ENABLED=1

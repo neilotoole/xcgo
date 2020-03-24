@@ -13,7 +13,7 @@ macOS, Windows and Linux CGo projects for arch `amd64`.
 - `goreleaser`
 - `golangci-lint`
 - `mage`
-- `zsh` and `oh-my-zsh`
+- `zsh`
 - and a bunch of other stuff.
 
 The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc. The `neilotoole/xcgo` images are published to [Docker Hub](https://hub.docker.com/repository/docker/neilotoole/xcgo).
@@ -155,7 +155,6 @@ Some params that can be passed to `xcgo` (as args to `docker run`):
 First, consult the [wiki](https://github.com/neilotoole/xcgo/wiki) and
 the [neilotoole/sqlitr](https://github.com/neilotoole/sqlitr) example project.
 Then open an [issue](https://github.com/neilotoole/xcgo/issues).
-
 
 
 ## FAQ
