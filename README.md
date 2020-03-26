@@ -16,7 +16,11 @@ macOS, Windows and Linux CGo projects for arch `amd64`.
 - `zsh`
 - and a bunch of other stuff.
 
-The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc. The `neilotoole/xcgo` images are published to [Docker Hub](https://hub.docker.com/repository/docker/neilotoole/xcgo).
+The primary source of documentation for `xcgo` is the [wiki](https://github.com/neilotoole/xcgo/wiki). 
+Start there. There's a companion example project ([neilotoole/sqlitr](https://github.com/neilotoole/sqlitr)) 
+that was created explicitly to exhibit `xcgo`: it demonstrates pretty much the entire array of `xcgo`'s capabilities, 
+showing how to release to `brew`, `scoop`, `snap`, Docker Hub, GitHub, etc. The `neilotoole/xcgo` images are 
+published to [Docker Hub](https://hub.docker.com/r/neilotoole/xcgo).
 
 > Note: No effort has yet been made to provide support for other
 > archs such as `386` (or for an OS beyond the typical three),
