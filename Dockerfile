@@ -10,9 +10,8 @@ ARG OSX_SDK_SUM="d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc
 ARG OSX_CROSS_COMMIT="bee9df60f169abdbe88d8529dbcc1ec57acf656d"
 ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
-ARG GOLANGCI_LINT_VERSION="1.23.8"
-ARG GORELEASER_VERSION="0.128.0"
-ARG GORELEASER_SHA="2d9bcff7612700a2a9fe4a085a7f1a84298c2f4d70eab50b1eb5aa5d7863f7c4"
+ARG GOLANGCI_LINT_VERSION="1.34.1"
+ARG GORELEASER_VERSION="0.151.1"
 
 
 
@@ -95,8 +94,12 @@ RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
-RUN apt update && apt install -y golang-go
+RUN apt update && apt install -y golang-1.15
+RUN ln -s /usr/lib/go-1.15 /usr/lib/go
+RUN ln -s /usr/lib/go/bin/go /usr/bin/go
+RUN ln -s /usr/lib/go/bin/gofmt /usr/bin/gofmt
 
+RUN go version
 
 
 ####################  devtools  ####################
@@ -190,13 +193,11 @@ FROM docker AS gotools
 # This section descended from https://github.com/mailchain/goreleaser-xcgo
 # Much gratitude to the mailchain team.
 ARG GORELEASER_VERSION
-ARG GORELEASER_SHA
 ARG GORELEASER_DOWNLOAD_FILE="goreleaser_Linux_x86_64.tar.gz"
 ARG GORELEASER_DOWNLOAD_URL="https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/${GORELEASER_DOWNLOAD_FILE}"
 ARG GOLANGCI_LINT_VERSION
 
 RUN wget "${GORELEASER_DOWNLOAD_URL}"; \
-    echo "$GORELEASER_SHA $GORELEASER_DOWNLOAD_FILE" | sha256sum -c - || exit 1; \
     tar -xzf $GORELEASER_DOWNLOAD_FILE -C /usr/bin/ goreleaser; \
     rm $GORELEASER_DOWNLOAD_FILE;
 
