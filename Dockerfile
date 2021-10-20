@@ -12,7 +12,7 @@ ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG GOLANGCI_LINT_VERSION="1.42.1"
 ARG GORELEASER_VERSION="0.182.1"
-ARG GO_VERSION="1.16"
+ARG GO_VERSION="1.17"
 ARG UBUNTU=bionic
 
 
@@ -20,12 +20,11 @@ ARG UBUNTU=bionic
 ####################  snapbuilder ####################
 FROM ubuntu:${UBUNTU} AS snapbuilder
 ARG UBUNTU
-# We build from ubuntu:bionic because we need snapcraft. It's difficult
+# We build from ubuntu because we need snapcraft. It's difficult
 # to build, say, a Debian-based image with snapcraft included. Note also that
 # the snapcore/snapcraft images are based upon ubuntu:xenial, but we
 # want ubuntu:bionic (some things we want, e.g. go1.14, don't have good
-# packages for xenial). Also, generically, want to stay pretty current
-# with all the tech in this stack.
+# packages for xenial at the time of writing).
 
 # This section lifted from snapcore/snapcraft:stable
 # Grab dependencies
