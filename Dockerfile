@@ -12,11 +12,14 @@ ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG GOLANGCI_LINT_VERSION="1.42.1"
 ARG GORELEASER_VERSION="0.182.1"
+ARG GO_VERSION="1.16"
+ARG UBUNTU=bionic
 
 
 
 ####################  snapbuilder ####################
-FROM ubuntu:bionic AS snapbuilder
+FROM ubuntu:${UBUNTU} AS snapbuilder
+ARG UBUNTU
 # We build from ubuntu:bionic because we need snapcraft. It's difficult
 # to build, say, a Debian-based image with snapcraft included. Note also that
 # the snapcore/snapcraft images are based upon ubuntu:xenial, but we
@@ -58,18 +61,16 @@ RUN snap_version="$(awk '/^version:/{print $2}' /snap/snapcraft/current/meta/sna
 RUN echo 'exec "$SNAP/usr/bin/python3" "$SNAP/bin/snapcraft" "$@"' >> /snap/bin/snapcraft
 RUN chmod +x /snap/bin/snapcraft
 
-RUN apt update && apt install -y snapd
-
 ## Multi-stage build, only need the snaps from the builder. Copy them one at a
 ## time so they can be cached.
-FROM ubuntu:bionic AS snapcore
+FROM ubuntu:$UBUNTU AS snapcore
 COPY --from=snapbuilder /snap/core /snap/core
 COPY --from=snapbuilder /snap/core18 /snap/core18
 COPY --from=snapbuilder /snap/snapcraft /snap/snapcraft
 COPY --from=snapbuilder /snap/bin/snapcraft /snap/bin/snapcraft
 
-# Generate locale.
-RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y sudo locales && locale-gen en_US.UTF-8
+# Generate locale and install dependencies.
+RUN apt-get update && apt-get dist-upgrade --yes && apt-get install --yes snapd sudo locales && locale-gen en_US.UTF-8
 
 # Set the proper environment.
 ENV LANG="en_US.UTF-8"
@@ -82,6 +83,7 @@ ENV SNAP_ARCH="amd64"
 
 ####################  golangcore  ####################
 FROM snapcore AS golangcore
+ARG GO_VERSION
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
@@ -94,8 +96,8 @@ RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
-RUN apt update && apt install -y golang-1.17
-RUN ln -s /usr/lib/go-1.17 /usr/lib/go
+RUN apt update && apt install -y golang-${GO_VERSION}
+RUN ln -s /usr/lib/go-${GO_VERSION} /usr/lib/go
 RUN ln -s /usr/lib/go/bin/go /usr/bin/go
 RUN ln -s /usr/lib/go/bin/gofmt /usr/bin/gofmt
 
