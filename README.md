@@ -6,7 +6,7 @@ macOS, Windows and Linux CGo projects for arch `amd64`.
 
 `xcgo` has what gophers crave:
 
-- `go 1.17`
+- `go 1.16`
 - `OSX SDK` Catalina / `macOS 10.15` (will build on later versions)
 - `docker`
 - `snapcraft`
@@ -35,7 +35,7 @@ You can test `xcgo` with:
 
 ```shell script
 $ docker run -it neilotoole/xcgo:latest go version
-go version go1.17.2 linux/amd64
+go version go1.16.8 linux/amd64
 ```
 
 To play around in the container, launch into a shell:
