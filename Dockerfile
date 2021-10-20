@@ -7,7 +7,7 @@ ARG OSX_CODENAME="catalina"
 ARG OSX_VERSION_MIN="10.10"
 ARG OSX_SDK_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG OSX_SDK_SUM="d97054a0aaf60cb8e9224ec524315904f0309fbbbac763eb7736bdfbdad6efc8"
-ARG OSX_CROSS_COMMIT="bee9df60f169abdbe88d8529dbcc1ec57acf656d"
+ARG OSX_CROSS_COMMIT="de6ec57895713a090fee05cbc58e43b5d916ba33"
 ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG GOLANGCI_LINT_VERSION="1.42.1"
@@ -94,8 +94,8 @@ RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
-RUN apt update && apt install -y golang-1.16
-RUN ln -s /usr/lib/go-1.16 /usr/lib/go
+RUN apt update && apt install -y golang-1.17
+RUN ln -s /usr/lib/go-1.17 /usr/lib/go
 RUN ln -s /usr/lib/go/bin/go /usr/bin/go
 RUN ln -s /usr/lib/go/bin/gofmt /usr/bin/gofmt
 
