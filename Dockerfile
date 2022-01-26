@@ -12,7 +12,7 @@ ARG LIBTOOL_VERSION="2.4.6_1"
 ARG LIBTOOL_BASEURL="https://github.com/neilotoole/xcgo/releases/download/v0.1"
 ARG GOLANGCI_LINT_VERSION="1.42.1"
 ARG GORELEASER_VERSION="0.182.1"
-ARG GO_VERSION="1.17"
+ARG GO_VERSION=""
 ARG UBUNTU=bionic
 
 
@@ -95,10 +95,13 @@ RUN mkdir -p "${GOPATH}/src"
 
 # As suggested here: https://github.com/golang/go/wiki/Ubuntu
 RUN add-apt-repository -y ppa:longsleep/golang-backports
-RUN apt update && apt install -y golang-${GO_VERSION}
-RUN ln -s /usr/lib/go-${GO_VERSION} /usr/lib/go
-RUN ln -s /usr/lib/go/bin/go /usr/bin/go
-RUN ln -s /usr/lib/go/bin/gofmt /usr/bin/gofmt
+RUN if test -z "${GO_VERSION}"; then GO_VERSION=$(curl 'https://go.dev/VERSION?m=text'); fi && \
+	curl -L -o go.tar.gz https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz && \
+	rm -rf /usr/local/go && tar -C /usr/local -xzf go.tar.gz && \
+	rm go.tar.gz
+RUN ln -s /usr/local/go /usr/lib/go
+RUN ln -s /usr/local/go/bin/go /usr/bin/go
+RUN ln -s /usr/local/go/bin/gofmt /usr/bin/gofmt
 
 RUN go version
 
