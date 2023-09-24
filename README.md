@@ -1,5 +1,12 @@
 # neilotoole/xcgo
 
+> **Note**
+> With the advent of the Apple Silicon architecture, this project has become even more work to maintain.
+> I originally developed `xcgo` as a build tool for [`sq`](https://github.com/neilotoole/sq), as
+> no other tool readily supported all of `sq`'s various build targets. However, recent releases
+> of [GoReleaser](https://goreleaser.com) plus GitHub workflows now satisify `sq`'s needs. This project will no longer
+> be actively maintained, although PRs will still be accepted.
+
 `xcgo` is a maximalist Docker image for cross-compiling and
 releasing/distributing CGo-enabled Go/Golang applications. At this time, it can build and dist
 macOS, Windows and Linux CGo projects for arch `amd64`.
